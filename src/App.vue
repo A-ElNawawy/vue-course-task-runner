@@ -26,6 +26,11 @@ export default {
       showAddTask: false,
     };
   },
+
+  async created() {
+    this.tasks = await this.fetchTasks();
+  },
+
   methods: {
     async addTask(task) {
       const res = await fetch(`api/tasks`, {
@@ -44,27 +49,58 @@ export default {
       const data = await res.json();
       this.tasks.push(data);
     },
+
     async fetchTasks() {
       const res = await fetch("api/tasks");
       const data = await res.json();
       return data;
     },
-    deleteTask(id) {
+
+    async fetchTask(id) {
+      const res = await fetch(`api/tasks/${id}`);
+      const data = await res.json();
+      return data;
+    },
+
+    async toggleReminder(id) {
+      const toggledTask = await this.fetchTask(id);
+
+      toggledTask.reminder = !toggledTask.reminder;
+
+      const res = await fetch(`api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(toggledTask),
+      });
+      const data = await res.json();
+
+      this.task = this.tasks.map((task) =>
+        task.id === id ? (task.reminder = data.reminder) : task
+      );
+    },
+
+    async deleteTask(id) {
       const deletedTask = this.tasks.find((task) => task.id === id);
       if (confirm(`Delete ${deletedTask.text}?`)) {
+        const res = await fetch(`api/tasks/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          alert("Error Deleting Task");
+          return;
+        }
         this.tasks = this.tasks.filter((task) => task.id !== id);
       }
     },
-    toggleReminder(id) {
-      const toggledTask = this.tasks.find((task) => task.id === id);
-      toggledTask.reminder = !toggledTask.reminder;
-    },
+
     toggleAddTask() {
       this.showAddTask = !this.showAddTask;
     },
-  },
-  async created() {
-    this.tasks = await this.fetchTasks();
   },
 };
 </script>
